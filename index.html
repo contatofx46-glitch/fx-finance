@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>FX Finance</title>
+  <!-- Biblioteca Supabase Oficial CDN -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-card: #f5f5f7;
+      --text-main: #1d1d1f;
+      --text-sub: #86868b;
+      --apple-blue: #0071e3;
+      --border-light: #e5e5ea;
+      --accent-green: #34c759;
+      --accent-red: #ff3b30;
+      --accent-yellow: #f5a623;
+      --danger: #ff3b30;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .app-viewport {
+      width: 100%;
+      max-width: 600px;
+      min-height: 100vh;
+      background: var(--bg-primary);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 16px;
+    }
+    .view {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+    }
+    .view.active {
+      display: flex;
+    }
+    /* Barra Superior com Sessão */
+    .top-user-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+    .btn-logout {
+      background: none;
+      border: none;
+      color: var(--danger);
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    /* Seletor Compacto de Meses */
+    .month-selector-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2px;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-light);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .month-selector-bar::-webkit-scrollbar {
+      display: none;
+    }
+    .month-pill {
+      border: 1.5px solid transparent;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-sub);
+      padding: 5px 6px;
+      border-radius: 980px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .month-pill.active {
+      background: var(--text-main);
+      border-color: var(--text-main);
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .month-pill.is-today-month:not(.active) {
+      border-color: var(--text-main);
+      color: var(--text-main);
+      font-weight: 600;
+    }
+    /* Ecrã de Login */
+    .auth-card {
+      margin: auto 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      width: 100%;
+    }
+    .auth-card .hero-title {
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    .auth-card .hero-subtitle {
+      font-size: 14px;
+      color: var(--text-sub);
+      margin-bottom: 24px;
+    }
+    .auth-form {
+      width: 100%;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .auth-submit-btn {
+      width: 100%;
+      background: var(--text-main);
+      color: #ffffff;
+      border: none;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 980px;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: opacity 0.2s ease;
+    }
+    .auth-submit-btn:hover {
+      opacity: 0.9;
+    }
+    .auth-toggle {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--apple-blue);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    /* Ecrã Inicial */
+    .hero-container {
+      margin: auto 0;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    .hero-title {
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      margin-bottom: 6px;
+    }
+    .hero-subtitle {
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--text-sub);
+      margin-bottom: 30px;
+      letter-spacing: -0.01em;
+    }
+    .menu-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .menu-slider-highlight {
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: var(--apple-blue);
+      border-radius: 980px;
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+      z-index: 1;
+    }
+    .menu-btn {
+      position: relative;
+      z-index: 2;
+      background: transparent;
+      color: var(--apple-blue);
+      border: 1px solid var(--apple-blue);
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 500;
+      border-radius: 980px;
+      cursor: pointer;
+      text-align: center;
+      transition: color 0.15s ease;
+      width: 100%;
+    }
+    .menu-btn.active-hover {
+      color: #ffffff !important;
+      border-color: transparent !important;
+    }
+    .fx-footer {
+      padding: 26px 0 10px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-sub);
+    }
+    .fx-footer span {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    /* Secções Internas */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .back-btn {
+      background: none;
+      border: none;
+      color: var(--apple-blue);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px 0;
+    }
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .stats-summary {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+    .stat-line {
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .stat-line-contas {
+      font-size: 15px;
+      font-weight: 400 !important;
+      color: #1d1d1f !important;
+      line-height: 1.5;
+    }
+    .color-green { color: var(--accent-green); }
+    .color-red { color: var(--accent-red); }
+    .color-yellow { color: var(--accent-yellow); }
+    .color-blue { color: var(--apple-blue); }
+    /* Lista */
+    .item-list {
+      list-style: none;
+      border-top: 1px solid var(--border-light);
+    }
+    .list-row {
+      border-bottom: 1px solid var(--border-light);
+      transition: all 0.2s ease;
+    }
+    .list-row.is-paid-row {
+      opacity: 0.55;
+      background: #fafafa;
+    }
+    .list-row.is-paid-row .item-title,
+    .list-row.is-paid-row .item-val {
+      text-decoration: line-through;
+    }
+    .row-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 2px;
+      cursor: pointer;
+    }
+    .left-title-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .item-title {
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .due-badge {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .badge-yellow {
+      background-color: var(--accent-yellow);
+      box-shadow: 0 0 6px rgba(245, 166, 35, 0.6);
+    }
+    .badge-red {
+      background-color: var(--accent-red);
+      box-shadow: 0 0 6px rgba(255, 59, 48, 0.6);
+    }
+    .right-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .item-val {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .chevron-down {
+      width: 8px;
+      height: 8px;
+      border-right: 1.5px solid var(--text-sub);
+      border-bottom: 1.5px solid var(--text-sub);
+      transform: rotate(45deg);
+      transition: transform 0.25s ease;
+      margin-top: -3px;
+    }
+    .list-row.open .chevron-down {
+      transform: rotate(-135deg);
+      margin-top: 3px;
+    }
+    .row-details {
+      display: none;
+      padding: 14px;
+      background: var(--bg-card);
+      border-radius: 12px;
+      margin-bottom: 12px;
+    }
+    .list-row.open .row-details {
+      display: block;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .detail-label {
+      font-size: 10px;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      display: block;
+    }
+    .action-bar {
+      display: flex;
+      gap: 8px;
+      border-top: 1px solid var(--border-light);
+      padding-top: 10px;
+    }
+    .action-btn {
+      flex: 1;
+      padding: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn-pay { background: var(--text-main); color: #fff; }
+    .btn-edit { background: #e5e5ea; color: var(--text-main); }
+    .btn-delete { background: #ffe5e5; color: var(--danger); }
+    /* Carteira */
+    .carteira-box {
+      margin-top: 10px;
+      padding: 16px;
+      background: var(--bg-card);
+      border-radius: 16px;
+    }
+    .carteira-box h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .manual-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+    }
+    .manual-table th {
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      padding-bottom: 6px;
+    }
+    .manual-table td {
+      padding: 6px 4px;
+    }
+    .manual-input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      font-size: 14px;
+      background: #ffffff;
+    }
+    .btn-del-row {
+      background: transparent;
+      border: none;
+      color: var(--danger);
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .carteira-actions {
+      display: flex;
+      justify-content: flex-start;
+      margin-top: 6px;
+    }
+    .btn-subtle {
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .conciliacao-box {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    /* Relatório */
+    .report-card {
+      margin-bottom: 18px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+    }
+    .report-header {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .report-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .report-chevron {
+      width: 8px;
+      height: 8px;
+      border-right: 1.5px solid var(--text-main);
+      border-bottom: 1.5px solid var(--text-main);
+      transform: rotate(45deg);
+      transition: transform 0.25s ease;
+      margin-top: -2px;
+    }
+    .report-card.collapsed .report-chevron {
+      transform: rotate(-45deg);
+      margin-top: 0;
+    }
+    .report-body {
+      margin-top: 12px;
+      border-top: 1px solid var(--border-light);
+      padding-top: 8px;
+    }
+    .report-card.collapsed .report-body {
+      display: none !important;
+    }
+    .report-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 0;
+      font-size: 13px;
+      border-bottom: 1px dashed #f0f0f2;
+    }
+    .report-row:last-child {
+      border-bottom: none;
+    }
+    .report-totals {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-light);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 13px;
+    }
+    .btn-print {
+      background: var(--text-main);
+      color: #ffffff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 980px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .fab-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--text-main);
+      color: #fff;
+      font-size: 26px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      z-index: 20;
+    }
+    .fab-btn.hidden {
+      display: none !important;
+    }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-card {
+      background: #ffffff;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 380px;
+      padding: 22px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.15);
+    }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-viewport">
+    
+    <!-- 0. Ecrã de Autenticação -->
+    <div id="view-auth" class="view active">
+      <div class="auth-card">
+        <h1 class="hero-title">FX Finance</h1>
+        <p class="hero-subtitle" id="authSubTitle">Aceda à sua conta pessoal</p>
+        <div class="auth-form">
+          <input type="email" id="authEmail" class="form-control" placeholder="O seu e-mail" />
+          <input type="password" id="authPassword" class="form-control" placeholder="A sua palavra-passe (mín. 6 dígitos)" />
+          <button type="button" class="auth-submit-btn" id="btnAuthAction" onclick="handleAuthSubmit()">Entrar</button>
+          <div class="auth-toggle" id="authToggleText" onclick="toggleAuthMode()">Não tem conta? Criar nova conta</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de Sessão e Seletor de Meses -->
+    <div id="app-header-area" style="display: none;">
+      <div class="top-user-bar">
+        <span id="userEmailSpan">utilizador</span>
+        <button class="btn-logout" onclick="handleLogout()">Terminar Sessão</button>
+      </div>
+      <nav class="month-selector-bar" id="monthSelector"></nav>
+    </div>
+
+    <!-- 1. Ecrã Inicial -->
+    <div id="view-home" class="view">
+      <div class="hero-container">
+        <h1 class="hero-title">FX Finance</h1>
+        <p class="hero-subtitle">Controle financeiro pessoal e inteligente</p>
+        <div class="menu-wrapper" id="menuWrapper">
+          <div class="menu-slider-highlight" id="menuHighlight"></div>
+          <button class="menu-btn" onclick="openSection('Carteira')">Carteira</button>
+          <button class="menu-btn" onclick="openSection('Contas a Pagar')">Contas a Pagar</button>
+          <button class="menu-btn" onclick="openSection('Receitas')">Receitas</button>
+          <button class="menu-btn" onclick="openSection('Controle Diário')">Controle Diário</button>
+          <button class="menu-btn" onclick="openSection('Patrimônio')">Patrimônio</button>
+          <button class="menu-btn" onclick="openRelatorioMes()">Relatório do Mês</button>
+        </div>
+      </div>
+      <footer class="fx-footer">
+        Designed & Engineered by <span>FX46</span>
+      </footer>
+    </div>
+
+    <!-- 2. Secção Padrão -->
+    <div id="view-section" class="view">
+      <div class="section-header">
+        <button class="back-btn" onclick="goHome()">‹ Voltar</button>
+        <h2 id="current-section-title" class="section-title"></h2>
+        <div style="width: 45px;"></div>
+      </div>
+      <div class="stats-summary" id="stats-area"></div>
+      
+      <!-- Carteira Manual -->
+      <div id="carteira-manual-container" class="carteira-box" style="display: none;">
+        <h3>Carteira</h3>
+        <table class="manual-table">
+          <thead>
+            <tr>
+              <th style="width: 50%;">Local / Conta</th>
+              <th style="width: 40%;">Valor</th>
+              <th style="width: 10%;"></th>
+            </tr>
+          </thead>
+          <tbody id="manual-table-body"></tbody>
+        </table>
+        <div class="carteira-actions">
+          <button class="btn-subtle" onclick="addManualRow()">+ Adicionar Local</button>
+        </div>
+        <div class="conciliacao-box" id="conciliacao-box"></div>
+      </div>
+      <ul class="item-list" id="items-container"></ul>
+      <button id="mainFabBtn" class="fab-btn" onclick="openModal()">+</button>
+    </div>
+
+    <!-- 3. Relatório do Mês -->
+    <div id="view-report" class="view">
+      <div class="section-header">
+        <button class="back-btn" onclick="goHome()">‹ Voltar</button>
+        <h2 class="section-title">Relatório do Mês</h2>
+        <button class="btn-print" onclick="window.print()">Imprimir</button>
+      </div>
+      <div id="report-content"></div>
+    </div>
+  </div>
+
+  <!-- Modal Adicionar / Editar -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal-card">
+      <h3 id="modalSectionHeader" style="margin-bottom: 12px;">Lançamento</h3>
+      <input type="hidden" id="editingId" value="" />
+      <div class="form-group" id="grpTitle">
+        <label id="lblTitle">Título</label>
+        <input type="text" id="modalTitle" class="form-control" placeholder="Descrição" />
+      </div>
+      <div class="form-group">
+        <label>Valor</label>
+        <input type="text" id="modalVal" class="form-control" placeholder="R$ 0,00" inputmode="numeric" oninput="maskCurrency(this)" />
+      </div>
+      <div class="form-group" id="grpNatureza" style="display: none;">
+        <label>Tipo de Lançamento</label>
+        <select id="modalNatureza" class="form-control" onchange="toggleParcelasField()">
+          <option value="Única">Única</option>
+          <option value="Recorrente">Recorrente (Próximos Meses)</option>
+          <option value="Parcelada">Parcelada</option>
+        </select>
+      </div>
+      <div class="form-group" id="grpInstallments" style="display: none;">
+        <label>Quantidade de Parcelas</label>
+        <input type="number" id="modalInstallmentCount" class="form-control" placeholder="Ex: 5" min="2" max="36" />
+      </div>
+      <div class="form-group" id="grpDueDate" style="display: none;">
+        <label>Data de Vencimento</label>
+        <input type="date" id="modalDueDate" class="form-control" />
+      </div>
+      <div class="form-group" id="grpDailyDate" style="display: none;">
+        <label>Data do Lançamento</label>
+        <input type="date" id="modalDailyDate" class="form-control" />
+      </div>
+      <div class="form-group" id="grpFav">
+        <label>Favorecido / Detalhe</label>
+        <input type="text" id="modalFav" class="form-control" placeholder="Opcional" />
+      </div>
+      <div class="form-group" id="grpPix">
+        <label>Chave Pix / Info</label>
+        <input type="text" id="modalPix" class="form-control" placeholder="Opcional" />
+      </div>
+      <div class="form-group" id="grpPatrimonioType" style="display: none;">
+        <label>Disponibilidade</label>
+        <select id="modalPatrimonioSelect" class="form-control">
+          <option value="Pode ser Movimentado (Líquido)">Pode ser Movimentado (Líquido)</option>
+          <option value="Retido / Imobilizado">Retido / Imobilizado</option>
+          <option value="Crédito Disponível">Crédito Disponível</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="action-btn" onclick="closeModal()">Cancelar</button>
+        <button class="action-btn btn-pay" id="btnSaveSubmit" onclick="submitModal()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Configuração Supabase ---
+    const SUPABASE_URL = 'https://dnxibgqxudnyxjwcmqet.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRueGliZ3F4dWRueXhqd2NtcWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NjEwNTMsImV4cCI6MjEwNjUzNzA1M30.TxPd6myagbRD0oE2KqGsPT3ihhvcAO8OOptsb6DcCKo';
+    
+    let supabaseClient = null;
+    try {
+      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } catch(e) {
+      console.error("Falha ao inicializar o Supabase:", e);
+    }
+
+    var database = [];
+    var carteiraManualData = [];
+    var isSignUpMode = false;
+    var currentUser = null;
+
+    var monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    var realDate = new Date();
+    var currentRealMonthKey = realDate.getFullYear() + "-" + String(realDate.getMonth() + 1).padStart(2, '0');
+    var selectedMonthKey = currentRealMonthKey;
+    var activeSectionName = '';
+
+    // --- Autenticação ---
+    function toggleAuthMode() {
+      isSignUpMode = !isSignUpMode;
+      document.getElementById('authSubTitle').innerText = isSignUpMode ? 'Crie a sua conta pessoal' : 'Aceda à sua conta pessoal';
+      document.getElementById('btnAuthAction').innerText = isSignUpMode ? 'Criar Conta' : 'Entrar';
+      document.getElementById('authToggleText').innerText = isSignUpMode ? 'Já tem conta? Entrar' : 'Não tem conta? Criar nova conta';
+    }
+
+    async function handleAuthSubmit() {
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+
+      if (!email || !password) {
+        alert('Por favor, preencha o e-mail e a senha.');
+        return;
+      }
+      if (password.length < 6) {
+        alert('A senha deve ter no mínimo 6 dígitos.');
+        return;
+      }
+
+      const btn = document.getElementById('btnAuthAction');
+      const originalText = btn.innerText;
+      btn.innerText = 'Processando...';
+      btn.disabled = true;
+
+      try {
+        if (isSignUpMode) {
+          const { data, error } = await supabaseClient.auth.signUp({ email, password });
+          if (error) {
+            alert('Erro ao criar conta: ' + error.message);
+          } else {
+            alert('Conta criada com sucesso!');
+            await checkSession();
+          }
+        } else {
+          const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) {
+            alert('Erro ao entrar: ' + error.message);
+          } else {
+            await checkSession();
+          }
+        }
+      } catch(err) {
+        alert('Erro inesperado: ' + err.message);
+      } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    async function handleLogout() {
+      if (supabaseClient) await supabaseClient.auth.signOut();
+      currentUser = null;
+      document.getElementById('app-header-area').style.display = 'none';
+      document.getElementById('view-home').classList.remove('active');
+      document.getElementById('view-section').classList.remove('active');
+      document.getElementById('view-report').classList.remove('active');
+      document.getElementById('view-auth').classList.add('active');
+    }
+
+    async function checkSession() {
+      if (!supabaseClient) return;
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session && session.user) {
+        currentUser = session.user;
+        document.getElementById('userEmailSpan').innerText = currentUser.email;
+        document.getElementById('app-header-area').style.display = 'block';
+        document.getElementById('view-auth').classList.remove('active');
+        document.getElementById('view-home').classList.add('active');
+        renderMonthSelector();
+        setupMenuSlider();
+        loadBackendData();
+      } else {
+        document.getElementById('app-header-area').style.display = 'none';
+        document.getElementById('view-auth').classList.add('active');
+      }
+    }
+
+    // --- Persistência Supabase ---
+    async function loadBackendData() {
+      if (!currentUser || !supabaseClient) return;
+
+      const { data: items } = await supabaseClient.from('lancamentos').select('*');
+      if (items) {
+        database = items.map(function(i) {
+          return {
+            id: i.id,
+            type: i.type,
+            title: i.title,
+            val: Number(i.val) || 0,
+            paid: i.paid,
+            month: i.month,
+            dueDate: i.due_date,
+            natureza: i.natureza,
+            installment: i.installment,
+            fav: i.fav,
+            pix: i.pix,
+            tipoPatrimonio: i.tipo_patrimonio
+          };
+        });
+      }
+
+      const { data: carteira } = await supabaseClient.from('carteira_manual').select('*');
+      if (carteira) {
+        carteiraManualData = carteira.map(function(c) {
+          return { local: c.local, valor: Number(c.valor) || 0 };
+        });
+      }
+
+      if (activeSectionName === 'Relatório do Mês') {
+        openRelatorioMes();
+      } else if (activeSectionName) {
+        openSection(activeSectionName);
+      }
+    }
+
+    async function persistBatchItems(newItems) {
+      if (!supabaseClient) return;
+      const payload = newItems.map(function(i) {
+        return {
+          type: i.type,
+          title: i.title,
+          val: i.val,
+          paid: i.paid,
+          month: i.month,
+          due_date: i.dueDate,
+          natureza: i.natureza,
+          installment: i.installment,
+          fav: i.fav,
+          pix: i.pix,
+          tipo_patrimonio: i.tipoPatrimonio
+        };
+      });
+      const { data } = await supabaseClient.from('lancamentos').insert(payload).select();
+      if (data) {
+        data.forEach(function(saved) {
+          var found = database.find(function(d){ return d.title === saved.title && !d.id; });
+          if (found) found.id = saved.id;
+        });
+      }
+    }
+
+    async function persistUpdateItem(item) {
+      if (!supabaseClient) return;
+      await supabaseClient.from('lancamentos').update({
+        title: item.title,
+        val: item.val,
+        paid: item.paid,
+        due_date: item.dueDate,
+        natureza: item.natureza,
+        installment: item.installment,
+        fav: item.fav,
+        pix: item.pix,
+        tipo_patrimonio: item.tipoPatrimonio
+      }).eq('id', item.id);
+    }
+
+    async function persistTogglePaid(id, status) {
+      if (!supabaseClient) return;
+      await supabaseClient.from('lancamentos').update({ paid: status }).eq('id', id);
+    }
+
+    async function persistDeleteItem(id) {
+      if (!supabaseClient) return;
+      await supabaseClient.from('lancamentos').delete().eq('id', id);
+    }
+
+    async function persistCarteiraManual() {
+      if (!currentUser || !supabaseClient) return;
+      await supabaseClient.from('carteira_manual').delete().eq('user_id', currentUser.id);
+      if (carteiraManualData.length > 0) {
+        const rows = carteiraManualData.map(function(r) {
+          return {
+            user_id: currentUser.id,
+            local: r.local || '',
+            valor: Number(r.valor) || 0
+          };
+        });
+        await supabaseClient.from('carteira_manual').insert(rows);
+      }
+    }
+
+    // --- UI e Lógica Visual ---
+    function generateMonthWindow() {
+      var y = realDate.getFullYear();
+      var m = realDate.getMonth();
+      var list = [];
+      for (var offset = -3; offset <= 2; offset++) {
+        var d = new Date(y, m + offset, 1);
+        var k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0');
+        list.push({
+          label: monthNames[d.getMonth()] + " " + String(d.getFullYear()).slice(2),
+          key: k,
+          year: d.getFullYear(),
+          monthIndex: d.getMonth(),
+          isToday: k === currentRealMonthKey
+        });
+      }
+      return list;
+    }
+    var monthWindow = generateMonthWindow();
+
+    function renderMonthSelector() {
+      var bar = document.getElementById('monthSelector');
+      if (!bar) return;
+      bar.innerHTML = '';
+      for (var i = 0; i < monthWindow.length; i++) {
+        (function(item) {
+          var btn = document.createElement('button');
+          btn.className = 'month-pill ' + (item.key === selectedMonthKey ? 'active' : '') + (item.isToday ? ' is-today-month' : '');
+          btn.innerText = item.label;
+          btn.onclick = function() {
+            selectedMonthKey = item.key;
+            renderMonthSelector();
+            if (activeSectionName === 'Relatório do Mês') openRelatorioMes();
+            else if (activeSectionName) openSection(activeSectionName);
+          };
+          bar.appendChild(btn);
+        })(monthWindow[i]);
+      }
+    }
+
+    function setupMenuSlider() {
+      var wrapper = document.getElementById('menuWrapper');
+      var highlight = document.getElementById('menuHighlight');
+      if (!wrapper || !highlight) return;
+      var buttons = wrapper.querySelectorAll('.menu-btn');
+      buttons.forEach(function(btn) {
+        btn.addEventListener('mouseenter', function() {
+          buttons.forEach(function(b) { b.classList.remove('active-hover'); });
+          btn.classList.add('active-hover');
+          highlight.style.width = btn.offsetWidth + 'px';
+          highlight.style.height = btn.offsetHeight + 'px';
+          highlight.style.transform = 'translate(' + btn.offsetLeft + 'px, ' + btn.offsetTop + 'px)';
+          highlight.style.opacity = '1';
+        });
+      });
+      wrapper.addEventListener('mouseleave', function() {
+        buttons.forEach(function(b) { b.classList.remove('active-hover'); });
+        highlight.style.opacity = '0';
+      });
+    }
+
+    function maskCurrency(input) {
+      var v = input.value.replace(/\D/g, '');
+      if (!v) { input.value = ''; return; }
+      v = (Number(v) / 100).toFixed(2) + '';
+      v = v.replace('.', ',');
+      v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+      input.value = 'R$ ' + v;
+    }
+
+    function parseCurrency(str) {
+      if (!str) return 0;
+      var clean = String(str).replace(/[^\d,]/g, '').replace(',', '.');
+      return parseFloat(clean) || 0;
+    }
+
+    function formatBRL(val) {
+      return (Number(val) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatCleanDate(str) {
+      if (!str) return '';
+      var clean = String(str).trim();
+      if (clean.indexOf('T') !== -1) clean = clean.split('T')[0];
+      var parts = clean.split('-');
+      if (parts.length === 3) return parts[2] + '/' + parts[1] + '/' + parts[0];
+      return clean;
+    }
+
+    function normalizeMonth(monthVal, dueDateVal) {
+      var str = String(monthVal || '').trim();
+      if (str.length >= 7 && str.indexOf('-') === 4) return str.substring(0, 7);
+      if (str.indexOf('/') !== -1) {
+        var p = str.split('/');
+        if (p.length === 3) return p[2] + '-' + p[1].padStart(2, '0');
+      }
+      if (dueDateVal) {
+        var dStr = String(dueDateVal).trim();
+        if (dStr.length >= 7 && dStr.indexOf('-') === 4) return dStr.substring(0, 7);
+      }
+      return str;
+    }
+
+    function checkDueStatus(dueDateStr, isPaid) {
+      if (!dueDateStr || isPaid) return null;
+      var clean = String(dueDateStr).trim();
+      if (clean.indexOf('T') !== -1) clean = clean.split('T')[0];
+      var parts = clean.split('-');
+      if (parts.length !== 3) return null;
+      var due = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      var today = new Date(realDate.getFullYear(), realDate.getMonth(), realDate.getDate());
+      var diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 0) return { color: 'badge-red', text: diffDays === 0 ? 'Vence Hoje' : 'Vencida' };
+      else if (diffDays <= 3) return { color: 'badge-yellow', text: 'Vence em ' + diffDays + 'd' };
+      return null;
+    }
+
+    function toggleParcelasField() {
+      var nat = document.getElementById('modalNatureza').value;
+      document.getElementById('grpInstallments').style.display = (nat === 'Parcelada') ? 'block' : 'none';
+    }
+
+    function getMediaDiaria(totalGasto, monthKey) {
+      if (!totalGasto || totalGasto <= 0) return 0;
+      var parts = monthKey.split('-');
+      var anoSel = parseInt(parts[0]);
+      var mesSel = parseInt(parts[1]) - 1;
+      var anoAtual = realDate.getFullYear();
+      var mesAtual = realDate.getMonth();
+      var diaAtual = realDate.getDate();
+      if (anoSel === anoAtual && mesSel === mesAtual) {
+        return totalGasto / (diaAtual > 0 ? diaAtual : 1);
+      } else if (anoSel < anoAtual || (anoSel === anoAtual && mesSel < mesAtual)) {
+        return totalGasto / new Date(anoSel, mesSel + 1, 0).getDate();
+      }
+      return 0;
+    }
+
+    function openSection(title) {
+      activeSectionName = title;
+      document.getElementById('current-section-title').innerText = title;
+      var fab = document.getElementById('mainFabBtn');
+      var carteiraBox = document.getElementById('carteira-manual-container');
+      var stats = document.getElementById('stats-area');
+      var list = document.getElementById('items-container');
+      list.innerHTML = '';
+
+      if (title === 'Carteira') {
+        fab.classList.add('hidden');
+        carteiraBox.style.display = 'block';
+        stats.style.display = 'none';
+      } else {
+        fab.classList.remove('hidden');
+        carteiraBox.style.display = 'none';
+        stats.style.display = 'flex';
+      }
+
+      var monthItems = database.filter(function(i) {
+        if (i.type === "Patrimônio") return true;
+        return normalizeMonth(i.month, i.dueDate) === selectedMonthKey;
+      });
+
+      var recRec = 0, recPend = 0, pagRec = 0, pagPend = 0, diario = 0;
+      monthItems.forEach(function(i) {
+        var v = Number(i.val) || 0;
+        if (i.type === "Receitas") { if (i.paid) recRec += v; else recPend += v; }
+        if (i.type === "Contas a Pagar") { if (i.paid) pagRec += v; else pagPend += v; }
+        if (i.type === "Controle Diário") diario += v;
+      });
+
+      var saldoAtual = recRec - pagRec - diario;
+      var saldoPrevisto = (recRec + recPend) - (pagRec + pagPend) - diario;
+
+      if (title === "Carteira") {
+        renderCarteiraManual(saldoAtual);
+      } else if (title === "Contas a Pagar") {
+        stats.innerHTML = '<div class="stat-line-contas">Pagando tudo me sobra: ' + formatBRL(saldoPrevisto) + '</div>' +
+                          '<div class="stat-line-contas">Total a pagar: ' + formatBRL(pagPend) + '</div>' +
+                          '<div class="stat-line-contas">Total pago: ' + formatBRL(pagRec) + '</div>';
+      } else if (title === "Receitas") {
+        stats.innerHTML = '<div class="stat-line color-yellow">A receber: ' + formatBRL(recPend) + '</div>' +
+                          '<div class="stat-line color-blue">Total recebido: ' + formatBRL(recRec) + '</div>';
+      } else if (title === "Controle Diário") {
+        stats.innerHTML = '<div class="stat-line color-yellow">Total de gastos no mês: ' + formatBRL(diario) + '</div>' +
+                          '<div class="stat-line color-blue">Média/dia corrido: ' + formatBRL(getMediaDiaria(diario, selectedMonthKey)) + '</div>';
+      } else if (title === "Patrimônio") {
+        var totPat = 0;
+        database.filter(function(i){ return i.type === "Patrimônio"; }).forEach(function(i){ totPat += Number(i.val) || 0; });
+        stats.innerHTML = '<div class="stat-line color-blue">Patrimônio Consolidado: ' + formatBRL(totPat) + '</div>';
+      }
+
+      var filtered = monthItems.filter(function(i) { return i.type === title; });
+      if (filtered.length === 0) {
+        list.innerHTML = '<li style="padding: 24px 0; text-align: center; color: var(--text-sub); font-size: 14px;">Nenhum lançamento encontrado para ' + selectedMonthKey + '.</li>';
+      }
+
+      filtered.sort(function(a, b) {
+        if (title === 'Contas a Pagar' || title === 'Receitas') return (a.paid === b.paid) ? 0 : a.paid ? 1 : -1;
+        return 0;
+      });
+
+      filtered.forEach(function(item) {
+        var li = document.createElement('li');
+        var shouldStrike = item.paid && (item.type === 'Contas a Pagar' || item.type === 'Receitas');
+        li.className = 'list-row' + (shouldStrike ? ' is-paid-row' : '');
+        li.onclick = function() { this.classList.toggle('open'); };
+        
+        var dueStatus = checkDueStatus(item.dueDate, item.paid);
+        var badgeHtml = dueStatus ? '<span class="due-badge ' + dueStatus.color + '" title="' + dueStatus.text + '"></span>' : '';
+        var dateLabel = (item.type === 'Controle Diário') ? 'Data Lançamento' : 'Vencimento';
+        var dateExtra = item.dueDate ? '<div><span class="detail-label">' + dateLabel + '</span>' + formatCleanDate(item.dueDate) + (dueStatus ? ' (' + dueStatus.text + ')' : '') + '</div>' : '';
+        var natExtra = item.natureza ? '<div><span class="detail-label">Natureza</span>' + item.natureza + (item.installment ? ' (' + item.installment + ')' : '') + '</div>' : '';
+        var infoExtra = item.tipoPatrimonio ? '<div><span class="detail-label">Disponibilidade</span>' + item.tipoPatrimonio + '</div>' : '';
+        var favExtra = item.fav ? '<div><span class="detail-label">Favorecido / Info</span>' + item.fav + '</div>' : '';
+        var pixExtra = item.pix ? '<div><span class="detail-label">Chave Pix</span>' + item.pix + '</div>' : '';
+        var payLabel = item.type === 'Receitas' ? 'Recebido!' : 'Liquidar';
+        var payBtnHtml = (!item.paid && item.type !== 'Patrimônio') ? '<button class="action-btn btn-pay" onclick="markItemPaid(\'' + item.id + '\')">' + payLabel + '</button>' : '';
+
+        li.innerHTML = '<div class="row-summary">' +
+                         '<div class="left-title-box">' +
+                           badgeHtml +
+                           '<span class="item-title">' + item.title + (item.installment ? ' <small style="color:var(--text-sub);">(' + item.installment + ')</small>' : '') + '</span>' +
+                         '</div>' +
+                         '<div class="right-info">' +
+                           '<span class="item-val">' + formatBRL(item.val) + '</span>' +
+                           '<div class="chevron-down"></div>' +
+                         '</div>' +
+                       '</div>' +
+                       '<div class="row-details" onclick="event.stopPropagation()">' +
+                         '<div class="detail-grid">' +
+                           '<div><span class="detail-label">Status</span>' + (item.paid ? (item.type === 'Receitas' ? "Recebido ✓" : "Liquidado ✓") : "Pendente") + '</div>' +
+                           natExtra + dateExtra + infoExtra + favExtra + pixExtra +
+                         '</div>' +
+                         '<div class="action-bar">' +
+                           payBtnHtml +
+                           '<button class="action-btn btn-edit" onclick="editItem(\'' + item.id + '\')">Editar</button>' +
+                           '<button class="action-btn btn-delete" onclick="removeItem(\'' + item.id + '\')">Excluir</button>' +
+                         '</div>' +
+                       '</div>';
+        list.appendChild(li);
+      });
+
+      document.getElementById('view-home').classList.remove('active');
+      document.getElementById('view-report').classList.remove('active');
+      document.getElementById('view-section').classList.add('active');
+    }
+
+    function goHome() {
+      activeSectionName = '';
+      document.getElementById('view-section').classList.remove('active');
+      document.getElementById('view-report').classList.remove('active');
+      document.getElementById('view-home').classList.add('active');
+    }
+
+    function markItemPaid(id) {
+      for (var i = 0; i < database.length; i++) {
+        if (database[i].id === id) { database[i].paid = true; break; }
+      }
+      openSection(activeSectionName);
+      persistTogglePaid(id, true);
+    }
+
+    function removeItem(id) {
+      if (confirm('Deseja excluir este lançamento?')) {
+        database = database.filter(function(i) { return i.id !== id; });
+        openSection(activeSectionName);
+        persistDeleteItem(id);
+      }
+    }
+
+    function openModal() {
+      document.getElementById('editingId').value = '';
+      document.getElementById('modalSectionHeader').innerText = 'Novo em ' + activeSectionName;
+      document.getElementById('modalTitle').value = '';
+      document.getElementById('modalVal').value = '';
+      document.getElementById('modalDueDate').value = '';
+      document.getElementById('modalDailyDate').value = realDate.toISOString().split('T')[0];
+      document.getElementById('modalFav').value = '';
+      document.getElementById('modalPix').value = '';
+      document.getElementById('modalNatureza').value = 'Única';
+      document.getElementById('modalInstallmentCount').value = '';
+      
+      var isDiario = activeSectionName === 'Controle Diário';
+      var isPatrimonio = activeSectionName === 'Patrimônio';
+      var isPagar = activeSectionName === 'Contas a Pagar';
+      document.getElementById('grpNatureza').style.display = isPagar ? 'block' : 'none';
+      document.getElementById('grpInstallments').style.display = 'none';
+      document.getElementById('grpDueDate').style.display = isPagar ? 'block' : 'none';
+      document.getElementById('grpDailyDate').style.display = isDiario ? 'block' : 'none';
+      document.getElementById('grpPix').style.display = isPagar ? 'block' : 'none';
+      document.getElementById('grpPatrimonioType').style.display = isPatrimonio ? 'block' : 'none';
+      document.getElementById('lblTitle').innerText = isDiario ? 'Título (Opcional)' : (isPatrimonio ? 'Nome do Bem' : 'Título');
+      document.getElementById('addModal').classList.add('active');
+    }
+
+    function editItem(id) {
+      var item = database.find(function(i) { return i.id === id; });
+      if (!item) return;
+      document.getElementById('editingId').value = item.id;
+      document.getElementById('modalSectionHeader').innerText = 'Editar Lançamento';
+      document.getElementById('modalTitle').value = item.title;
+      var inputVal = document.getElementById('modalVal');
+      inputVal.value = (Number(item.val) * 100).toFixed(0);
+      maskCurrency(inputVal);
+      document.getElementById('modalDueDate').value = item.dueDate || '';
+      document.getElementById('modalDailyDate').value = item.dueDate || realDate.toISOString().split('T')[0];
+      document.getElementById('modalFav').value = item.fav || '';
+      document.getElementById('modalPix').value = item.pix || '';
+      document.getElementById('modalNatureza').value = item.natureza || 'Única';
+      
+      var isPagar = item.type === 'Contas a Pagar';
+      var isPatrimonio = item.type === 'Patrimônio';
+      var isDiario = item.type === 'Controle Diário';
+      document.getElementById('grpNatureza').style.display = isPagar ? 'block' : 'none';
+      document.getElementById('grpInstallments').style.display = 'none';
+      document.getElementById('grpDueDate').style.display = isPagar ? 'block' : 'none';
+      document.getElementById('grpDailyDate').style.display = isDiario ? 'block' : 'none';
+      document.getElementById('grpPix').style.display = isPagar ? 'block' : 'none';
+      document.getElementById('grpPatrimonioType').style.display = isPatrimonio ? 'block' : 'none';
+      document.getElementById('addModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('addModal').classList.remove('active');
+    }
+
+    function submitModal() {
+      var editingId = document.getElementById('editingId').value;
+      var titleInput = document.getElementById('modalTitle').value.trim();
+      var valInput = parseCurrency(document.getElementById('modalVal').value);
+      var dueDateInput = (activeSectionName === 'Controle Diário') ? 
+        document.getElementById('modalDailyDate').value : 
+        document.getElementById('modalDueDate').value;
+      var naturezaInput = document.getElementById('modalNatureza').value;
+      var installmentsCount = parseInt(document.getElementById('modalInstallmentCount').value) || 1;
+
+      if (valInput <= 0) { alert('Digite um valor válido.'); return; }
+      if (!titleInput && activeSectionName === 'Controle Diário') titleInput = 'Gasto Diário';
+      else if (!titleInput) { alert('Informe um título.'); return; }
+
+      var isPatrimonio = activeSectionName === 'Patrimônio';
+
+      if (editingId) {
+        var existing = database.find(function(i){ return i.id === editingId; });
+        var updatedItem = {
+          id: editingId,
+          type: existing ? existing.type : activeSectionName,
+          title: titleInput,
+          val: valInput,
+          paid: existing ? existing.paid : false,
+          month: existing ? existing.month : selectedMonthKey,
+          dueDate: dueDateInput,
+          natureza: naturezaInput,
+          installment: existing ? existing.installment : '',
+          fav: document.getElementById('modalFav').value.trim(),
+          pix: document.getElementById('modalPix').value.trim(),
+          tipoPatrimonio: isPatrimonio ? document.getElementById('modalPatrimonioSelect').value : ''
+        };
+        for (var i = 0; i < database.length; i++) {
+          if (database[i].id === editingId) { database[i] = updatedItem; break; }
+        }
+        persistUpdateItem(updatedItem);
+      } else {
+        var newItemsToSave = [];
+        var startMonthObj = monthWindow.find(function(m){ return m.key === selectedMonthKey; }) || monthWindow[3];
+        var startIdx = monthWindow.indexOf(startMonthObj);
+
+        if (activeSectionName === 'Contas a Pagar' && naturezaInput === 'Recorrente') {
+          for (var idx = startIdx; idx < monthWindow.length; idx++) {
+            var targetMonth = monthWindow[idx].key;
+            var targetDueDate = dueDateInput ? targetMonth + '-' + dueDateInput.split('-')[2] : '';
+            newItemsToSave.push({
+              type: activeSectionName,
+              title: titleInput,
+              val: valInput,
+              paid: false,
+              month: targetMonth,
+              dueDate: targetDueDate,
+              natureza: "Recorrente",
+              installment: "",
+              fav: document.getElementById('modalFav').value.trim(),
+              pix: document.getElementById('modalPix').value.trim()
+            });
+          }
+        } else if (activeSectionName === 'Contas a Pagar' && naturezaInput === 'Parcelada') {
+          for (var p = 1; p <= installmentsCount; p++) {
+            var mOffset = startIdx + (p - 1);
+            var targetMonth = (mOffset < monthWindow.length) ? monthWindow[mOffset].key : '';
+            if (!targetMonth) {
+              var extraDate = new Date(startMonthObj.year, startMonthObj.monthIndex + (p - 1), 1);
+              targetMonth = extraDate.getFullYear() + "-" + String(extraDate.getMonth() + 1).padStart(2, '0');
+            }
+            var targetDueDate = dueDateInput ? targetMonth + '-' + dueDateInput.split('-')[2] : '';
+            newItemsToSave.push({
+              type: activeSectionName,
+              title: titleInput,
+              val: valInput,
+              paid: false,
+              month: targetMonth,
+              dueDate: targetDueDate,
+              natureza: "Parcelada",
+              installment: p + "/" + installmentsCount,
+              fav: document.getElementById('modalFav').value.trim(),
+              pix: document.getElementById('modalPix').value.trim()
+            });
+          }
+        } else {
+          newItemsToSave.push({
+            type: activeSectionName,
+            title: titleInput,
+            val: valInput,
+            paid: (activeSectionName === 'Controle Diário' || isPatrimonio),
+            month: isPatrimonio ? '' : selectedMonthKey,
+            dueDate: dueDateInput,
+            natureza: "Única",
+            fav: document.getElementById('modalFav').value.trim(),
+            pix: document.getElementById('modalPix').value.trim(),
+            tipoPatrimonio: isPatrimonio ? document.getElementById('modalPatrimonioSelect').value : ''
+          });
+        }
+        newItemsToSave.forEach(function(item) { database.push(item); });
+        persistBatchItems(newItemsToSave);
+      }
+      closeModal();
+      openSection(activeSectionName);
+    }
+
+    function renderCarteiraManual(saldoDisponivelCalc) {
+      var tbody = document.getElementById('manual-table-body');
+      tbody.innerHTML = '';
+      var somaManual = 0;
+      carteiraManualData.forEach(function(row, index) {
+        somaManual += Number(row.valor) || 0;
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td><input type="text" class="manual-input" value="' + (row.local || '') + '" onchange="updateManualRow(' + index + ', \'local\', this.value)" placeholder="Nome da conta / local"></td>' +
+                       '<td><input type="text" class="manual-input" value="' + formatBRL(row.valor) + '" oninput="maskCurrency(this)" onchange="updateManualRow(' + index + ', \'valor\', this.value)"></td>' +
+                       '<td style="text-align:center;"><button class="btn-del-row" onclick="deleteManualRow(' + index + ')">×</button></td>';
+        tbody.appendChild(tr);
+      });
+      var diff = somaManual - saldoDisponivelCalc;
+      var statusHtml = '';
+      if (Math.abs(diff) < 0.01) {
+        statusHtml = '<div class="color-green" style="font-weight:600; margin-top:8px;">Valores batem com exatidão! ✓</div>';
+      } else {
+        var sinal = diff > 0 ? '+' : '-';
+        var valorAbs = Math.abs(diff);
+        var explicacao = diff > 0 ? 'Sobrando ' + formatBRL(valorAbs) + ' (receita não lançada ou gasto a menor).' : 'Faltando ' + formatBRL(valorAbs) + ' (gasto não lançado ou receita a menor).';
+        statusHtml = '<div class="color-red" style="font-weight:600; margin-top:8px;">Divergência: ' + sinal + ' ' + formatBRL(valorAbs) + '</div>' +
+                     '<div style="font-size:12px; color:var(--text-sub); margin-top:2px;">Isso quer dizer que algo não foi lançado: ' + explicacao + '</div>';
+      }
+      document.getElementById('conciliacao-box').innerHTML = 
+        '<div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:4px;"><span>Preciso ter em carteira:</span><span style="font-weight:600;">' + formatBRL(saldoDisponivelCalc) + '</span></div>' +
+        '<div style="display:flex; justify-content:space-between; font-size:14px;"><span>Tenho de fato:</span><span style="font-weight:600;">' + formatBRL(somaManual) + '</span></div>' +
+        statusHtml;
+    }
+
+    function updateManualRow(index, field, val) {
+      if (field === 'valor') carteiraManualData[index].valor = parseCurrency(val);
+      else carteiraManualData[index].local = val;
+      persistCarteiraManual();
+      openSection('Carteira');
+    }
+
+    function addManualRow() {
+      carteiraManualData.push({ local: "", valor: 0 });
+      persistCarteiraManual();
+      openSection('Carteira');
+    }
+
+    function deleteManualRow(index) {
+      carteiraManualData.splice(index, 1);
+      persistCarteiraManual();
+      openSection('Carteira');
+    }
+
+    function toggleReportSection(element) {
+      element.classList.toggle('collapsed');
+    }
+
+    function openRelatorioMes() {
+      activeSectionName = 'Relatório do Mês';
+      var container = document.getElementById('report-content');
+      container.innerHTML = '';
+      var monthItems = database.filter(function(i) {
+        return normalizeMonth(i.month, i.dueDate) === selectedMonthKey;
+      });
+
+      var recList = monthItems.filter(function(i){ return i.type === 'Receitas'; });
+      var recRecebida = 0, recPendente = 0, recHtml = '';
+      recList.forEach(function(i) {
+        var v = Number(i.val) || 0;
+        if (i.paid) recRecebida += v; else recPendente += v;
+        recHtml += '<div class="report-row"><span>' + i.title + ' <small style="color:var(--text-sub);">(' + (i.paid ? 'Recebido' : 'A receber') + ')</small></span><span>' + formatBRL(v) + '</span></div>';
+      });
+      if (!recList.length) recHtml = '<div class="report-row"><span style="color:var(--text-sub);">Sem receitas registradas.</span></div>';
+
+      var pagList = monthItems.filter(function(i){ return i.type === 'Contas a Pagar'; });
+      var pagPaga = 0, pagAberta = 0, pagHtml = '';
+      pagList.forEach(function(i) {
+        var v = Number(i.val) || 0;
+        if (i.paid) pagPaga += v; else pagAberta += v;
+        pagHtml += '<div class="report-row"><span>' + i.title + (i.installment ? ' (' + i.installment + ')' : '') + ' <small style="color:var(--text-sub);">(' + (i.paid ? 'Paga' : 'Em aberto') + ')</small></span><span>' + formatBRL(v) + '</span></div>';
+      });
+      if (!pagList.length) pagHtml = '<div class="report-row"><span style="color:var(--text-sub);">Sem contas registradas.</span></div>';
+
+      var diarioList = monthItems.filter(function(i){ return i.type === 'Controle Diário'; });
+      var totalDiario = 0, diarioHtml = '';
+      diarioList.forEach(function(i) {
+        var v = Number(i.val) || 0;
+        totalDiario += v;
+        diarioHtml += '<div class="report-row"><span>' + (i.dueDate ? formatCleanDate(i.dueDate) + ' - ' : '') + i.title + '</span><span>' + formatBRL(v) + '</span></div>';
+      });
+      if (!diarioList.length) diarioHtml = '<div class="report-row"><span style="color:var(--text-sub);">Sem gastos diários registrados.</span></div>';
+
+      var patList = database.filter(function(i){ return i.type === 'Patrimônio'; });
+      var totalPat = 0, patHtml = '';
+      patList.forEach(function(i) {
+        var v = Number(i.val) || 0;
+        totalPat += v;
+        patHtml += '<div class="report-row"><span>' + i.title + ' <small style="color:var(--text-sub);">(' + (i.tipoPatrimonio || 'Ativo') + ')</small></span><span>' + formatBRL(v) + '</span></div>';
+      });
+      if (!patList.length) patHtml = '<div class="report-row"><span style="color:var(--text-sub);">Sem patrimônio registrado.</span></div>';
+
+      container.innerHTML = 
+        '<div class="report-card" onclick="toggleReportSection(this)"><div class="report-header"><div class="report-header-left"><div class="report-chevron"></div><span>1. Receitas</span></div><span>' + formatBRL(recRecebida + recPendente) + '</span></div><div class="report-body" onclick="event.stopPropagation()">' + recHtml + '<div class="report-totals"><div style="display:flex; justify-content:space-between; color:var(--accent-green);"><span>Já Recebido:</span><span>' + formatBRL(recRecebida) + '</span></div><div style="display:flex; justify-content:space-between; color:var(--accent-yellow);"><span>A Receber:</span><span>' + formatBRL(recPendente) + '</span></div></div></div></div>' +
+        '<div class="report-card" onclick="toggleReportSection(this)"><div class="report-header"><div class="report-header-left"><div class="report-chevron"></div><span>2. Contas a Pagar</span></div><span>' + formatBRL(pagPaga + pagAberta) + '</span></div><div class="report-body" onclick="event.stopPropagation()">' + pagHtml + '<div class="report-totals"><div style="display:flex; justify-content:space-between; color:var(--accent-blue);"><span>Pagas / Liquidadas:</span><span>' + formatBRL(pagPaga) + '</span></div><div style="display:flex; justify-content:space-between; color:var(--accent-yellow);"><span>Em Aberto:</span><span>' + formatBRL(pagAberta) + '</span></div></div></div></div>' +
+        '<div class="report-card" onclick="toggleReportSection(this)"><div class="report-header"><div class="report-header-left"><div class="report-chevron"></div><span>3. Gastos Diários</span></div><span>' + formatBRL(totalDiario) + '</span></div><div class="report-body" onclick="event.stopPropagation()">' + diarioHtml + '<div class="report-totals"><div style="display:flex; justify-content:space-between; font-weight:600;"><span>Total de Gastos Diários:</span><span>' + formatBRL(totalDiario) + '</span></div></div></div></div>' +
+        '<div class="report-card" onclick="toggleReportSection(this)"><div class="report-header"><div class="report-header-left"><div class="report-chevron"></div><span>4. Patrimônio Acumulado</span></div><span>' + formatBRL(totalPat) + '</span></div><div class="report-body" onclick="event.stopPropagation()">' + patHtml + '<div class="report-totals"><div style="display:flex; justify-content:space-between; font-weight:600;"><span>Patrimônio Total:</span><span>' + formatBRL(totalPat) + '</span></div></div></div></div>';
+
+      document.getElementById('view-home').classList.remove('active');
+      document.getElementById('view-section').classList.remove('active');
+      document.getElementById('view-report').classList.add('active');
+    }
+
+    // Inicialização
+    checkSession();
+  </script>
+</body>
+</html>
